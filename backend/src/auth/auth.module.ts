@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+
 import { AuthService } from './auth.service.js';
 import { AuthController } from './auth.controller.js';
+import { SuperuserGuard } from './superuser.guard.js';
 
 @Module({
   imports: [
@@ -16,8 +18,18 @@ import { AuthController } from './auth.controller.js';
     }),
   ],
 
-  providers: [AuthService],
+  providers: [
+    AuthService,
+    SuperuserGuard,
+  ],
 
-  controllers: [AuthController],
+  controllers: [
+    AuthController,
+  ],
+
+  exports: [
+    JwtModule,
+    SuperuserGuard,
+  ],
 })
 export class AuthModule {}

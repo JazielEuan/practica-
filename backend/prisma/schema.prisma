@@ -8,292 +8,150 @@ datasource db {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model activities {
-  id                            String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  axis_id                       String?                         @db.Uuid
-  objective_id                  String?                         @db.Uuid
-  creator_id                    String                          @db.Uuid
-  title                         String                          @db.VarChar(255)
-  description                   String
-  activity_type                 String                          @default("ordinary") @db.VarChar(50)
-  start_date                    DateTime                        @db.Date
-  end_date                      DateTime                        @db.Date
-  location                      String?                         @db.VarChar(255)
-  general_observations          String?
-  requires_certificate          Boolean?                        @default(false)
-  requires_authority            Boolean?                        @default(false)
-  planning_approval             String?                         @default("PENDING") @db.VarChar(50)
-  academic_approval             String?                         @default("PENDING") @db.VarChar(50)
-  admin_approval                String?                         @default("PENDING") @db.VarChar(50)
-  overall_status                String?                         @default("DRAFT") @db.VarChar(50)
-  created_at                    DateTime?                       @default(now()) @db.Timestamptz(6)
-  updated_at                    DateTime?                       @default(now()) @db.Timestamptz(6)
-  axes                          axes?                           @relation(fields: [axis_id], references: [id], onUpdate: NoAction, map: "fk_activity_axis")
-  users                         users                           @relation(fields: [creator_id], references: [id], onUpdate: NoAction, map: "fk_activity_creator")
-  objectives                    objectives?                     @relation(fields: [objective_id], references: [id], onUpdate: NoAction, map: "fk_activity_objective")
-  activity_budget_items         activity_budget_items[]
-  activity_certificate_requests activity_certificate_requests[]
-  activity_locations            activity_locations[]
-  activity_service_requests     activity_service_requests[]
-  event_collaborators           event_collaborators[]
-  notifications                 notifications[]
-  planning_reports              planning_reports[]
-  reservations                  reservations[]
-
-  @@index([creator_id], map: "idx_activities_creator_id")
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model activity_budget_items {
-  id               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  activity_id      String     @db.Uuid
-  concept          String     @db.VarChar(100)
-  description      String?
-  estimated_amount Decimal    @default(0.00) @db.Decimal(10, 2)
-  created_at       DateTime?  @default(now()) @db.Timestamptz(6)
-  updated_at       DateTime?  @default(now()) @db.Timestamptz(6)
-  activities       activities @relation(fields: [activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_budget_activity")
-
-  @@index([activity_id], map: "idx_budget_items_activity_id")
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model activity_certificate_requests {
-  id                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  activity_id            String                   @db.Uuid
-  document_title         String                   @db.VarChar(255)
-  description_text       String
-  academic_hours         Int?                     @default(0)
-  issue_date             DateTime?                @db.Date
-  status                 String?                  @default("PENDING") @db.VarChar(30)
-  notes                  String?
-  created_at             DateTime?                @default(now()) @db.Timestamptz(6)
-  updated_at             DateTime?                @default(now()) @db.Timestamptz(6)
-  activities             activities               @relation(fields: [activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cert_req_activity")
-  certificate_recipients certificate_recipients[]
-
-  @@index([activity_id], map: "idx_cert_req_activity_id")
-}
-
-model activity_locations {
-  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  activity_id String     @db.Uuid
-  place_name  String     @db.VarChar(250)
-  address     String?
-  latitude    Decimal?   @db.Decimal(10, 8)
-  longitude   Decimal?   @db.Decimal(11, 8)
-  maps_url    String?    @db.VarChar(500)
-  activities  activities @relation(fields: [activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_act_loc_activity")
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model activity_service_requests {
-  id                         String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  activity_id                String                       @db.Uuid
-  service_type               String                       @db.VarChar(100)
-  quantity_needed            Int?                         @default(1)
-  description                String?
-  activities                 activities                   @relation(fields: [activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_act_req_activity")
-  activity_staff_assignments activity_staff_assignments[]
-}
-
-model activity_staff_assignments {
-  id                        String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  service_request_id        String                    @db.Uuid
-  user_id                   String                    @db.Uuid
-  task_description          String?
-  status                    String?                   @default("PENDING") @db.VarChar(30)
-  is_confirmed              Boolean?                  @default(false)
-  assigned_at               DateTime?                 @default(now()) @db.Timestamptz(6)
-  activity_service_requests activity_service_requests @relation(fields: [service_request_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_act_staff_request")
-  users                     users                     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_act_staff_user")
-}
-
-model axes {
-  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name       String       @unique @db.VarChar(255)
-  activities activities[]
-}
-
-model certificate_recipients {
-  id                            String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  certificate_request_id        String                        @db.Uuid
-  user_id                       String?                       @db.Uuid
-  academic_degree               String?                       @db.VarChar(50)
-  full_name                     String                        @db.VarChar(250)
-  curp_or_identifier            String?                       @db.VarChar(50)
-  email                         String?                       @db.VarChar(150)
-  role_in_activity              String?                       @default("ATTENDEE") @db.VarChar(50)
-  certificate_url               String?                       @db.VarChar(500)
-  created_at                    DateTime?                     @default(now()) @db.Timestamptz(6)
-  activity_certificate_requests activity_certificate_requests @relation(fields: [certificate_request_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cert_recipient_request")
-  users                         users?                        @relation(fields: [user_id], references: [id], onUpdate: NoAction, map: "fk_cert_recipient_user")
-
-  @@index([certificate_request_id], map: "idx_cert_recipient_req_id")
-  @@index([user_id], map: "idx_cert_recipient_user_id")
+  activity_id           String                  @id(map: "activities_pk") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title                 String?                 @db.VarChar(255)
+  description           String?
+  type                  activity_type?
+  start_date            DateTime?               @db.Date
+  end_date              DateTime?               @db.Date
+  general_observation   String?
+  requires_certified    Boolean?
+  requires_authority    Boolean?
+  planning_approved     activity_status         @default(pending)
+  academic_approved     activity_status         @default(pending)
+  admin_approved        activity_status         @default(pending)
+  overall_status        activity_status         @default(pending)
+  objective_id          String?                 @db.Uuid
+  created_at            DateTime?               @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime?               @default(now()) @db.Timestamptz(6)
+  creator_id            String                  @db.Uuid
+  users                 users                   @relation(fields: [creator_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_activity_creator")
+  objectives            objectives?             @relation(fields: [objective_id], references: [objective_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_activity_objective")
+  activity_personnel    activity_personnel[]
+  activity_reports      activity_reports?
+  activity_requirements activity_requirements[]
+  notifications         notifications[]
+  reservations          reservations[]
 }
 
 model departments {
-  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  code       String     @unique @db.VarChar(20)
-  name       String     @unique @db.VarChar(150)
-  created_at DateTime?  @default(now()) @db.Timestamptz(6)
-  updated_at DateTime?  @default(now()) @db.Timestamptz(6)
-  profiles   profiles[]
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model event_collaborators {
-  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id        String        @db.Uuid
-  activity_id    String?       @db.Uuid
-  reservation_id String?       @db.Uuid
-  role_in_event  String        @db.VarChar(50)
-  activities     activities?   @relation(fields: [activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ec_activity")
-  reservations   reservations? @relation(fields: [reservation_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ec_reservation")
-  users          users         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ec_user")
+  department_id String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String      @db.VarChar(150)
+  description   String?
+  packages      packages[]
+  resources     resources[]
+  users         users[]
 }
 
 model notifications {
-  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id        String        @db.Uuid
-  activity_id    String?       @db.Uuid
-  reservation_id String?       @db.Uuid
-  title          String        @db.VarChar(200)
-  message        String
-  type           String        @db.VarChar(50)
-  is_read        Boolean?      @default(false)
-  created_at     DateTime?     @default(now()) @db.Timestamptz(6)
-  activities     activities?   @relation(fields: [activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_notif_activity")
-  reservations   reservations? @relation(fields: [reservation_id], references: [id], onUpdate: NoAction, map: "fk_notif_reservation")
-  users          users         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_notif_user")
-
-  @@index([user_id], map: "idx_notif_user_id")
+  notification_id String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String        @db.Uuid
+  activity_id     String?       @db.Uuid
+  reservation_id  String?       @db.Uuid
+  title           String        @db.VarChar(200)
+  message         String
+  type            String?       @db.VarChar(50)
+  is_read         Boolean       @default(false)
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  activities      activities?   @relation(fields: [activity_id], references: [activity_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_notif_activity")
+  reservations    reservations? @relation(fields: [reservation_id], references: [reservation_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_notif_reservation")
+  users           users         @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_notif_user")
 }
 
 model objectives {
-  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name       String       @unique @db.VarChar(255)
-  activities activities[]
+  objective_id String       @id(map: "objectives_pk") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String?      @db.VarChar(255)
+  description  String?
+  axis_id      String?      @db.Uuid
+  created_at   DateTime?    @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime?    @default(now()) @db.Timestamptz(6)
+  activities   activities[]
+  axis         axis?        @relation(fields: [axis_id], references: [axis_id], onDelete: NoAction, onUpdate: NoAction, map: "objective_axis_id_fk")
 }
 
 model permissions {
-  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  slug             String             @unique @db.VarChar(100)
+  permission_id    String             @id(map: "permissions_pk") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String?            @db.VarChar(150)
+  slug             String             @db.VarChar(255)
   description      String?            @db.VarChar(255)
   created_at       DateTime?          @default(now()) @db.Timestamptz(6)
   updated_at       DateTime?          @default(now()) @db.Timestamptz(6)
   role_permissions role_permissions[]
 }
 
-model planning_reports {
-  id               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  activity_id      String     @db.Uuid
-  folio            String     @unique @db.VarChar(100)
-  generated_at     DateTime?  @default(now()) @db.Timestamptz(6)
-  file_url         String?    @db.VarChar(500)
-  validation_token String?
-  activities       activities @relation(fields: [activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_plan_rep_activity")
-}
-
 model profiles {
-  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id       String      @unique @db.Uuid
-  first_name    String      @db.VarChar(100)
-  last_name     String      @db.VarChar(100)
-  phone         String?     @db.VarChar(20)
-  department_id String      @db.Uuid
-  created_at    DateTime?   @default(now()) @db.Timestamptz(6)
-  updated_at    DateTime?   @default(now()) @db.Timestamptz(6)
-  departments   departments @relation(fields: [department_id], references: [id], onUpdate: NoAction, map: "fk_profile_department")
-  users         users       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_profile_user")
-
-  @@index([department_id], map: "idx_profiles_department_id")
+  user_id       String   @id(map: "profiles_pk") @db.Uuid
+  first_name    String?  @db.VarChar(100)
+  last_name     String?  @db.VarChar(100)
+  avatar_url    String?
+  phone_number  String?  @db.VarChar(20)
+  date_of_birth DateTime @db.Date
+  bio           String?
+  shift         String?  @db.VarChar(50)
+  users         users    @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_profile_user")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model reservation_resources {
   reservation_id String       @db.Uuid
   resource_id    String       @db.Uuid
-  quantity_used  Int          @default(1)
-  loan_status    String?      @default("REQUESTED") @db.VarChar(30)
-  request_type   String?      @default("EXTRA") @db.VarChar(30)
-  reservations   reservations @relation(fields: [reservation_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_rr_reservation")
-  resources      resources    @relation(fields: [resource_id], references: [id], onUpdate: NoAction, map: "fk_rr_resource")
+  quantity       Int
+  reservations   reservations @relation(fields: [reservation_id], references: [reservation_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_rr_reservation")
+  resources      resources    @relation(fields: [resource_id], references: [resource_id], onUpdate: NoAction, map: "fk_rr_resource")
 
   @@id([reservation_id, resource_id])
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model reservations {
-  id                    String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  creator_id            String                  @db.Uuid
-  space_id              String?                 @db.Uuid
-  activity_id           String?                 @db.Uuid
-  title                 String                  @db.VarChar(255)
-  description           String
-  reservation_date      DateTime                @db.Date
-  start_time            DateTime                @db.Time(6)
-  end_time              DateTime                @db.Time(6)
-  recurrence            String?                 @default("NONE") @db.VarChar(50)
-  status                String?                 @default("CONFIRMED") @db.VarChar(30)
+  reservation_id        String                  @id(map: "reservation_pk") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title                 String?                 @db.VarChar(255)
+  description           String?
   created_at            DateTime?               @default(now()) @db.Timestamptz(6)
   updated_at            DateTime?               @default(now()) @db.Timestamptz(6)
-  event_collaborators   event_collaborators[]
+  activity_id           String?                 @db.Uuid
+  status                reservation_status?     @default(active)
+  creator_id            String                  @db.Uuid
+  start_time            DateTime?               @db.Timestamptz(6)
+  end_time              DateTime?               @db.Timestamptz(6)
   notifications         notifications[]
+  reservation_personnel reservation_personnel[]
   reservation_resources reservation_resources[]
-  activities            activities?             @relation(fields: [activity_id], references: [id], onUpdate: NoAction, map: "fk_reservation_activity")
-  users                 users                   @relation(fields: [creator_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_reservation_creator")
-  spaces                spaces?                 @relation(fields: [space_id], references: [id], onUpdate: NoAction, map: "fk_reservation_space")
-
-  @@index([activity_id], map: "idx_reservations_activity_id")
-  @@index([space_id], map: "idx_reservations_space_id")
-}
-
-model resource_departments {
-  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  code        String      @unique @db.VarChar(30)
-  name        String      @unique @db.VarChar(150)
-  description String?
-  created_at  DateTime?   @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime?   @default(now()) @db.Timestamptz(6)
-  resources   resources[]
+  reservation_spaces    reservation_spaces[]
+  activities            activities?             @relation(fields: [activity_id], references: [activity_id], onDelete: Restrict, onUpdate: NoAction, map: "fk_reservation_activity")
+  users                 users                   @relation(fields: [creator_id], references: [user_id], onUpdate: NoAction, map: "fk_reservation_creator")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model resources {
-  id                    String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                  String                  @unique @db.VarChar(255)
-  resource_type         String                  @default("DYNAMIC") @db.VarChar(20)
-  quantity              Int                     @default(0)
-  available_quantity    Int                     @default(0)
-  damaged_quantity      Int                     @default(0)
-  responsible_user_id   String?                 @db.Uuid
-  space_id              String?                 @db.Uuid
-  department_id         String?                 @db.Uuid
+  resource_id           String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                  String                  @db.VarChar(150)
+  type                  resource_type
+  status                resource_status?        @default(active)
+  total_quantity        Int
+  owner_department_id   String?                 @db.Uuid
+  description           String?
+  package_items         package_items[]
   reservation_resources reservation_resources[]
-  resource_departments  resource_departments?   @relation(fields: [department_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_resource_department")
-  users                 users?                  @relation(fields: [responsible_user_id], references: [id], onUpdate: NoAction, map: "fk_resource_responsible")
-  spaces                spaces?                 @relation(fields: [space_id], references: [id], onUpdate: NoAction, map: "fk_resource_space")
-
-  @@index([department_id], map: "idx_resources_department_id")
-  @@index([space_id], map: "idx_resources_space_id")
+  departments           departments?            @relation(fields: [owner_department_id], references: [department_id], onUpdate: NoAction)
+  space_fixed_resources space_fixed_resources[]
 }
 
 model role_permissions {
   role_id       String      @db.Uuid
   permission_id String      @db.Uuid
   created_at    DateTime?   @default(now()) @db.Timestamptz(6)
-  permissions   permissions @relation(fields: [permission_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_role_perm_permission")
-  roles         roles       @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_role_perm_role")
+  updated_at    DateTime?   @default(now()) @db.Timestamptz(6)
+  permissions   permissions @relation(fields: [permission_id], references: [permission_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_role_perm_permission")
+  roles         roles       @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_role_perm_role")
 
-  @@id([role_id, permission_id])
+  @@id([role_id, permission_id], map: "role_permissions_pk")
 }
 
 model roles {
-  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name             String             @unique @db.VarChar(50)
+  role_id          String             @id(map: "roles_pk") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String?            @db.VarChar(100)
   description      String?            @db.VarChar(255)
-  level            Int?
   created_at       DateTime?          @default(now()) @db.Timestamptz(6)
   updated_at       DateTime?          @default(now()) @db.Timestamptz(6)
   role_permissions role_permissions[]
@@ -301,28 +159,29 @@ model roles {
 }
 
 model spaces {
-  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name             String         @unique @db.VarChar(250)
-  location_details String?
-  capacity         Int?           @default(0)
-  is_available     Boolean?       @default(true)
-  reservations     reservations[]
-  resources        resources[]
+  space_id              String                  @id(map: "spaces_pk") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                  String?                 @db.VarChar(255)
+  description           String?
+  capacity              Int?
+  status                space_status            @default(active)
+  reservation_spaces    reservation_spaces[]
+  space_fixed_resources space_fixed_resources[]
 }
 
 model user_roles {
   user_id    String    @db.Uuid
   role_id    String    @db.Uuid
   created_at DateTime? @default(now()) @db.Timestamptz(6)
-  roles      roles     @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_role_role")
-  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_role_user")
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  roles      roles     @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_user_role_role")
+  users      users     @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_user_role_user")
 
-  @@id([user_id, role_id])
+  @@id([user_id, role_id], map: "user_roles_pk")
 }
 
 model user_statuses {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String    @unique @db.VarChar(50)
+  status_id   String    @id(map: "user_statuses_pk") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String    @db.VarChar(50)
   description String?   @db.VarChar(255)
   created_at  DateTime? @default(now()) @db.Timestamptz(6)
   updated_at  DateTime? @default(now()) @db.Timestamptz(6)
@@ -330,8 +189,8 @@ model user_statuses {
 }
 
 model user_types {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String    @unique @db.VarChar(50)
+  type_id     String    @id(map: "user_types_pk") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String?   @db.VarChar(50)
   description String?   @db.VarChar(255)
   created_at  DateTime? @default(now()) @db.Timestamptz(6)
   updated_at  DateTime? @default(now()) @db.Timestamptz(6)
@@ -339,26 +198,212 @@ model user_types {
 }
 
 model users {
-  id                         String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  username                   String                       @unique @db.VarChar(50)
-  email                      String                       @unique @db.VarChar(150)
-  password_hash              String                       @db.VarChar(255)
-  status_id                  String                       @db.Uuid
-  type_id                    String                       @db.Uuid
-  created_at                 DateTime?                    @default(now()) @db.Timestamptz(6)
-  updated_at                 DateTime?                    @default(now()) @db.Timestamptz(6)
-  activities                 activities[]
-  activity_staff_assignments activity_staff_assignments[]
-  certificate_recipients     certificate_recipients[]
-  event_collaborators        event_collaborators[]
-  notifications              notifications[]
-  profiles                   profiles?
-  reservations               reservations[]
-  resources                  resources[]
-  user_roles                 user_roles[]
-  user_statuses              user_statuses                @relation(fields: [status_id], references: [id], onUpdate: NoAction, map: "fk_user_status")
-  user_types                 user_types                   @relation(fields: [type_id], references: [id], onUpdate: NoAction, map: "fk_user_type")
+  username              String?                 @db.VarChar(50)
+  user_id               String                  @id(map: "users_pk") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                 String                  @db.VarChar(150)
+  password_hash         String                  @db.VarChar(255)
+  created_at            DateTime?               @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime?               @default(now()) @db.Timestamptz(6)
+  status_id             String                  @db.Uuid
+  type_id               String?                 @db.Uuid
+  department_id         String?                 @db.Uuid
+  activities            activities[]
+  activity_personnel    activity_personnel[]
+  notifications         notifications[]
+  profiles              profiles?
+  reservation_personnel reservation_personnel[]
+  reservations          reservations[]
+  user_roles            user_roles[]
+  departments           departments?            @relation(fields: [department_id], references: [department_id], onUpdate: NoAction)
+  user_statuses         user_statuses           @relation(fields: [status_id], references: [status_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_user_status")
+  user_types            user_types?             @relation(fields: [type_id], references: [type_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_user_type")
+}
 
-  @@index([status_id], map: "idx_users_status_id")
-  @@index([type_id], map: "idx_users_type_id")
+model activity_personnel {
+  activity_id String     @db.Uuid
+  user_id     String     @db.Uuid
+  activities  activities @relation(fields: [activity_id], references: [activity_id], onDelete: Cascade, onUpdate: NoAction, map: "activity_personnel_activity_fkey")
+  users       users      @relation(fields: [user_id], references: [user_id], onUpdate: NoAction, map: "activity_personnel_user_fkey")
+
+  @@id([activity_id, user_id])
+}
+
+model activity_report_evidences {
+  evidence_id      String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  report_id        String           @db.Uuid
+  image_url        String
+  caption          String?          @db.VarChar(255)
+  uploaded_at      DateTime?        @default(now()) @db.Timestamptz(6)
+  activity_reports activity_reports @relation(fields: [report_id], references: [report_id], onDelete: Cascade, onUpdate: NoAction, map: "report_evidences_report_fk")
+}
+
+model activity_reports {
+  report_id                 String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  activity_id               String                      @unique @db.Uuid
+  folio                     String                      @db.VarChar(50)
+  report_date               DateTime                    @default(dbgenerated("CURRENT_DATE")) @db.Date
+  results_summary           String
+  created_at                DateTime?                   @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime?                   @default(now()) @db.Timestamptz(6)
+  activity_report_evidences activity_report_evidences[]
+  activities                activities                  @relation(fields: [activity_id], references: [activity_id], onDelete: Cascade, onUpdate: NoAction, map: "activity_reports_activity_fk")
+}
+
+model activity_requirements {
+  requirement_id    String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  activity_id       String              @db.Uuid
+  category_type     String              @db.VarChar(50)
+  total_amount      Decimal             @default(0) @db.Decimal(12, 2)
+  observations      String?
+  created_at        DateTime?           @default(now()) @db.Timestamptz(6)
+  activities        activities          @relation(fields: [activity_id], references: [activity_id], onDelete: Cascade, onUpdate: NoAction)
+  requirement_items requirement_items[]
+}
+
+model axis {
+  axis_id     String       @id(map: "axis_pk") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String?      @db.VarChar(255)
+  description String?
+  created_at  DateTime?    @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime?    @default(now()) @db.Timestamptz(6)
+  objectives  objectives[]
+}
+
+model flight_requirements_meta {
+  flight_meta_id    String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  item_id           String            @db.Uuid
+  flight_type       String            @db.VarChar(20)
+  passenger_name    String?           @db.VarChar(200)
+  origin            String            @db.VarChar(100)
+  destination       String            @db.VarChar(255)
+  departure_date    DateTime          @db.Date
+  departure_time    DateTime?         @db.Time(6)
+  return_date       DateTime?         @db.Date
+  return_time       DateTime?         @db.Time(6)
+  commission_motive String
+  created_at        DateTime?         @default(now()) @db.Timestamptz(6)
+  requirement_items requirement_items @relation(fields: [item_id], references: [item_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model item_catalogs {
+  catalog_id        String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String              @db.VarChar(150)
+  created_at        DateTime?           @default(now()) @db.Timestamptz(6)
+  requirement_items requirement_items[]
+}
+
+model lodging_requirements_meta {
+  lodging_meta_id      String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  item_id              String            @db.Uuid
+  hotel_name_suggested String?           @db.VarChar(255)
+  check_in_date        DateTime          @db.Date
+  check_out_date       DateTime          @db.Date
+  nights_count         Int
+  city_destination     String            @db.VarChar(150)
+  justification        String
+  created_at           DateTime?         @default(now()) @db.Timestamptz(6)
+  requirement_items    requirement_items @relation(fields: [item_id], references: [item_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model package_items {
+  package_id  String    @db.Uuid
+  resource_id String    @db.Uuid
+  quantity    Int
+  packages    packages  @relation(fields: [package_id], references: [package_id], onDelete: Cascade, onUpdate: NoAction)
+  resources   resources @relation(fields: [resource_id], references: [resource_id], onUpdate: NoAction)
+
+  @@id([package_id, resource_id])
+}
+
+model packages {
+  package_id          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                String          @db.VarChar(150)
+  owner_department_id String?         @db.Uuid
+  description         String?
+  package_items       package_items[]
+  departments         departments?    @relation(fields: [owner_department_id], references: [department_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model requirement_items {
+  item_id                   String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  requirement_id            String                      @db.Uuid
+  catalog_id                String?                     @db.Uuid
+  description               String
+  quantity                  Decimal                     @default(1) @db.Decimal(10, 2)
+  unit_measure              String                      @db.VarChar(50)
+  unit_cost                 Decimal                     @default(0) @db.Decimal(12, 2)
+  total_cost                Decimal?                    @default(dbgenerated("(quantity * unit_cost)")) @db.Decimal(12, 2)
+  created_at                DateTime?                   @default(now()) @db.Timestamptz(6)
+  flight_requirements_meta  flight_requirements_meta[]
+  lodging_requirements_meta lodging_requirements_meta[]
+  item_catalogs             item_catalogs?              @relation(fields: [catalog_id], references: [catalog_id], onUpdate: NoAction)
+  activity_requirements     activity_requirements       @relation(fields: [requirement_id], references: [requirement_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model reservation_personnel {
+  reservation_id String       @db.Uuid
+  user_id        String       @db.Uuid
+  reservations   reservations @relation(fields: [reservation_id], references: [reservation_id], onDelete: Cascade, onUpdate: NoAction)
+  users          users        @relation(fields: [user_id], references: [user_id], onUpdate: NoAction)
+
+  @@id([reservation_id, user_id])
+}
+
+model reservation_spaces {
+  reservation_id String       @db.Uuid
+  space_id       String       @db.Uuid
+  reservations   reservations @relation(fields: [reservation_id], references: [reservation_id], onDelete: NoAction, onUpdate: NoAction, map: "reservation_spaces_reservation_id_fk")
+  spaces         spaces       @relation(fields: [space_id], references: [space_id], onDelete: NoAction, onUpdate: NoAction, map: "reservation_spaces_space_id_fk")
+
+  @@id([reservation_id, space_id], map: "reservation_spaces_pk")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model space_fixed_resources {
+  space_id    String    @db.Uuid
+  resource_id String    @db.Uuid
+  quantity    Int
+  resources   resources @relation(fields: [resource_id], references: [resource_id], onDelete: Cascade, onUpdate: NoAction)
+  spaces      spaces    @relation(fields: [space_id], references: [space_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([space_id, resource_id])
+}
+
+enum activity_status {
+  pending
+  approved
+  rejected
+  rescheduled
+  cancelled
+}
+
+enum activity_type {
+  ordinary
+  extraordinary
+  entry
+}
+
+enum reservation_status {
+  active
+  in_use
+  cancelled
+  completed
+}
+
+enum resource_status {
+  active
+  maintenance
+  retired
+}
+
+enum resource_type {
+  fixed
+  dynamic
+}
+
+enum space_status {
+  active
+  inactive
+  undermaintenance
 }

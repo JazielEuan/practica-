@@ -16,14 +16,11 @@ export class AuthService {
 
   async login(email: string, pass: string) {
     // Buscar usuario por correo
-    const user = await this.prisma.users.findUnique({
+    const user = await this.prisma.users.findFirst({
       where: {
         email,
       },
     });
-
-    
-  
 
     // Si el usuario no existe
     if (!user) {
@@ -54,7 +51,7 @@ export class AuthService {
       );
     }
 
-    // Comparar contraseña con el hash
+    // Comparar contraseña con el hash guardado
     const isMatch = await bcrypt.compare(
       pass,
       user.password_hash,
@@ -67,9 +64,9 @@ export class AuthService {
       );
     }
 
-    // Información que se guardará en el JWT
+    // Información que se guardará dentro del JWT
     const payload = {
-      sub: user.id,
+      sub: user.user_id,
       email: user.email,
     };
 
@@ -78,7 +75,7 @@ export class AuthService {
       access_token: this.jwtService.sign(payload),
 
       user: {
-        id: user.id,
+        id: user.user_id,
         username: user.username,
         email: user.email,
       },
@@ -88,11 +85,11 @@ export class AuthService {
   async getProfile(userId: string) {
     return this.prisma.users.findUnique({
       where: {
-        id: userId,
+        user_id: userId,
       },
 
       select: {
-        id: true,
+        user_id: true,
         username: true,
         email: true,
         created_at: true,
